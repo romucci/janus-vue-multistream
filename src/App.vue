@@ -1,14 +1,15 @@
 <template>
   <div id="app">
+    <!-- Janus Videos List -->
     <JanusVideo :key="i" v-for="i in 8" />
   </div>
 </template>
 
 <script>
-import JanusVideo from './components/JanusVideo'
-
 export default {
-  components: { JanusVideo }
+  components: {
+    JanusVideo: () => import('@/components/JanusVideo')
+  }
 }
 </script>
 

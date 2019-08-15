@@ -1,4 +1,5 @@
 <template>
+  <!-- Janus Video -->
   <video
     ref="janusVideo"
     class="janus-video"
@@ -25,18 +26,22 @@ export default {
     this.janus.destroy()
   },
   methods: {
+    // Restart Stream
     restartStream () {
       const body = { 'request': 'restart' }
       streaming.send({ 'message': body })
     },
+    // Pause Stream
     pauseStream () {
       const body = { 'request': 'pause' }
       streaming.send({ 'message': body })
     },
+    // Switch Stream
     switchStream (id) {
-      const body = { 'request': 'switch', 'id': '1' }
+      const body = { 'request': 'switch', 'id': id }
       streaming.send({ 'message': body })
     },
+    // Init Janus
     initJanus () {
       let server = 'https://janus.conf.meetecho.com/janus'
 
