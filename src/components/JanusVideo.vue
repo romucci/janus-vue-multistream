@@ -55,6 +55,7 @@ export default {
                 this.janus.attach(
                   {
                     plugin: 'janus.plugin.streaming',
+                    opaqueId: 'test-' + Janus.randomString(12),
                     success: (pluginHandle) => {
                       streaming = pluginHandle
                       let body = { 'request': 'watch', id: parseInt('1') }
