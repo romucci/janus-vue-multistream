@@ -1,7 +1,7 @@
 <template>
   <div id="app">
     <!-- Janus Videos List -->
-    <JanusVideo :key="i" v-for="i in 8" />
+    <JanusVideo :key="i" v-for="i in 8" :camera="i"/>
   </div>
 </template>
 

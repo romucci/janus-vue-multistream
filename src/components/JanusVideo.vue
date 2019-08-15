@@ -1,7 +1,7 @@
 <template>
   <!-- Janus Video -->
   <video
-    ref="janusVideo"
+    :ref="`janusVideo${camera}`"
     class="janus-video"
     playsinline
     autoplay
@@ -10,17 +10,23 @@
 
 <script>
 import Janus from '../janus'
-let streaming = null
+let streaming = []
 
 export default {
   name: 'JanusVideo',
+  props: {
+    camera: {
+      type: Number,
+      required: true
+    }
+  },
   data () {
     return {
       janus: {}
     }
   },
   mounted () {
-    this.initJanus()
+    this.$nextTick(() => this.initJanus())
   },
   beforeDestroy () {
     this.janus.destroy()
@@ -44,7 +50,6 @@ export default {
     // Init Janus
     initJanus () {
       let server = 'https://janus.conf.meetecho.com/janus'
-
       Janus.init({
         debug: 'all',
         callback: () => {
@@ -54,35 +59,39 @@ export default {
               success: () => {
                 this.janus.attach(
                   {
-                    plugin: 'janus.plugin.streaming',
                     opaqueId: 'test-' + Janus.randomString(12),
+                    plugin: 'janus.plugin.streaming',
                     success: (pluginHandle) => {
-                      streaming = pluginHandle
+                      streaming.push(pluginHandle)
+                      console.log(streaming, 'jjjjjjjjjjjjjjjjj')
                       let body = { 'request': 'watch', id: parseInt('1') }
-                      streaming.send({ 'message': body })
+                      streaming[streaming.length - 1].send({ 'message': body })
                     },
                     error: (error) => { console.log(error) },
                     onmessage: (msg, jsep) => {
                       Janus.log('message', msg)
                       if (jsep !== undefined && jsep !== null) {
                         // Offer from the plugin, let's answer
-                        streaming.createAnswer(
-                          {
-                            jsep,
-                            media: { audioSend: false, videoSend: false },
-                            success: (jsep) => {
-                              const body = { 'request': 'start' }
-                              streaming.send({ 'message': body, 'jsep': jsep })
-                            },
-                            error: (error) => {
-                              Janus.error('WebRTC error:', error)
-                            }
-                          })
+                        for (let i = 0; i < streaming.length; i++) {
+                          streaming[i].createAnswer(
+                            {
+                              jsep,
+                              media: { audioSend: false, videoSend: false },
+                              success: (jsep) => {
+                                const body = { 'request': 'start' }
+                                console.log('start', jsep)
+                                streaming[i].send({ 'message': body, 'jsep': jsep })
+                              },
+                              error: (error) => {
+                                Janus.error('WebRTC error:', error)
+                              }
+                            })
+                        }
                       }
                     },
                     onremotestream: (stream) => {
-                      console.log('got stream:' + stream)
-                      Janus.attachMediaStream(this.$refs.janusVideo, stream)
+                      console.log('Attached', stream)
+                      this.$nextTick(() => Janus.attachMediaStream(this.$refs[`janusVideo${this.camera}`], stream))
                     }
                   })
               },
