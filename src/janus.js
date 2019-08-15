@@ -139,10 +139,9 @@ Janus.init = function(options) {
     }
     // Helper methods to attach/reattach a stream to a video element (previously part of adapter.js)
     Janus.attachMediaStream = function(element, stream) {
-      console.log('attatched')
       if(adapter.browserDetails.browser === 'chrome') {
         var chromever = adapter.browserDetails.version;
-        if(chromever >= 43) {
+        if (chromever >= 43) {
           element.srcObject = stream;
         } else if(typeof element.src !== 'undefined') {
           element.src = URL.createObjectURL(stream);
