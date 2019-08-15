@@ -15,8 +15,7 @@ export default {
   name: 'JanusVideo',
   data () {
     return {
-      janus: {},
-      isWaiting: false
+      janus: {}
     }
   },
   mounted () {
