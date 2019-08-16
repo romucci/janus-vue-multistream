@@ -1,11 +1,15 @@
 <template>
   <!-- Janus Video -->
-  <video
-    :ref="`janusVideo${camera}`"
-    class="janus-video"
-    playsinline
-    autoplay
-  />
+  <div>
+    <video
+      :key="camera"
+      v-for="(camera, i) in cameras"
+      :ref="`janusVideo${i}`"
+      class="janus-video"
+      playsinline
+      autoplay
+    />
+  </div>
 </template>
 
 <script>
@@ -15,95 +19,64 @@ let streaming = []
 export default {
   name: 'JanusVideo',
   props: {
-    camera: {
-      type: Number,
+    cameras: {
+      type: Array,
       required: true
+    },
+    janus: {
+      type: Object
     }
   },
   data () {
     return {
-      janus: {}
+      Janus: Janus
     }
   },
   mounted () {
-    this.$nextTick(() => this.initJanus())
-  },
-  beforeDestroy () {
-    this.janus.destroy()
+    this.initJanus()
   },
   methods: {
-    // Restart Stream
-    restartStream () {
-      const body = { 'request': 'restart' }
-      streaming.send({ 'message': body })
-    },
-    // Pause Stream
-    pauseStream () {
-      const body = { 'request': 'pause' }
-      streaming.send({ 'message': body })
-    },
-    // Switch Stream
-    switchStream (id) {
-      const body = { 'request': 'switch', 'id': id }
-      streaming.send({ 'message': body })
-    },
     // Init Janus
-    initJanus () {
-      let server = 'https://janus.conf.meetecho.com/janus'
-      Janus.init({
-        debug: 'all',
-        callback: () => {
-          this.janus = new Janus(
-            {
-              server,
-              success: () => {
-                this.janus.attach(
+    async initJanus () {
+      for (let i = 0; i < this.cameras.length; i++) {
+        await this.janus.attach(
+          {
+            opaqueId: 'test-' + i,
+            plugin: 'janus.plugin.streaming',
+            success: (pluginHandle) => {
+              streaming.push(pluginHandle)
+              let body = { 'request': 'watch', id: parseInt('1') }
+              console.log('index in plugin handle success', i)
+              streaming[i].send({ 'message': body })
+            },
+            error: (error) => { console.log(error) },
+            onmessage: (msg, jsep) => {
+              Janus.log('message', msg)
+              if (jsep !== undefined && jsep !== null) {
+                // Offer from the plugin, let's answer
+                console.log('index in on message', i)
+                streaming[i].createAnswer(
                   {
-                    opaqueId: 'test-' + Janus.randomString(12),
-                    plugin: 'janus.plugin.streaming',
-                    success: (pluginHandle) => {
-                      streaming.push(pluginHandle)
-                      console.log(streaming, 'jjjjjjjjjjjjjjjjj')
-                      let body = { 'request': 'watch', id: parseInt('1') }
-                      streaming[streaming.length - 1].send({ 'message': body })
+                    jsep,
+                    media: { audioSend: false, videoSend: false },
+                    success: (jsep) => {
+                      const body = { 'request': 'start' }
+                      console.log('start', jsep)
+                      console.log('index in on message success', i)
+                      streaming[i].send({ 'message': body, 'jsep': jsep })
                     },
-                    error: (error) => { console.log(error) },
-                    onmessage: (msg, jsep) => {
-                      Janus.log('message', msg)
-                      if (jsep !== undefined && jsep !== null) {
-                        // Offer from the plugin, let's answer
-                        for (let i = 0; i < streaming.length; i++) {
-                          streaming[i].createAnswer(
-                            {
-                              jsep,
-                              media: { audioSend: false, videoSend: false },
-                              success: (jsep) => {
-                                const body = { 'request': 'start' }
-                                console.log('start', jsep)
-                                streaming[i].send({ 'message': body, 'jsep': jsep })
-                              },
-                              error: (error) => {
-                                Janus.error('WebRTC error:', error)
-                              }
-                            })
-                        }
-                      }
-                    },
-                    onremotestream: (stream) => {
-                      console.log('Attached', stream)
-                      this.$nextTick(() => Janus.attachMediaStream(this.$refs[`janusVideo${this.camera}`], stream))
+                    error: (error) => {
+                      Janus.error('WebRTC error:', error)
                     }
                   })
-              },
-              error: (cause) => {
-                console.log(cause)
-              },
-              destroyed: () => {
-                console.log('Destroyed from inside janus handle')
               }
-            })
-        }
-      })
+            },
+            onremotestream: (stream) => {
+              console.log('on remote stream being called')
+              Janus.attachMediaStream(this.$refs[`janusVideo${i}`][0], stream)
+            }
+          })
+      }
     }
   }
 }
