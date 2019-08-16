@@ -2,7 +2,7 @@
   <div id="app">
     <!-- Janus Videos List -->
     <div v-if="!loading">
-      <JanusVideo :janus="janus" :cameras="['1', '2', '3', '4', '5']" />
+      <JanusVideo :janus="janus" :cameras="['1', '2', '3' ]" />
     </div>
   </div>
 </template>
