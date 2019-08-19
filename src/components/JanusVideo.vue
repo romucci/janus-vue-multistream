@@ -9,7 +9,7 @@
       playsinline
       autoplay
       muted
-    ></video>
+    />
   </div>
 </template>
 
@@ -32,52 +32,40 @@ export default {
       streaming: []
     }
   },
-  created () {
-    setTimeout(() => this.initJanus(), 4000)
+  mounted () {
+    this.initJanus()
   },
   methods: {
     // Init Janus
     initJanus () {
-      const vm = this
       for (let i = 0; i < this.cameras.length; i++) {
         this.janus.attach(
           {
             opaqueId: 'test-' + i,
             plugin: 'janus.plugin.streaming',
-            success: function (pluginHandle) {
-              console.log('catched plugin handle ', pluginHandle)
-              if (pluginHandle) {
-                console.log('plugin handle found', pluginHandle)
-                vm.streaming.push({ id: i, plugin: pluginHandle })
-                let body = { 'request': 'watch', id: parseInt('1') }
-                console.log('index in plugin handle success', i)
-                vm.streaming[i].plugin.send({ 'message': body })
-                console.log(vm.streaming)
-              }
+            success: (pluginHandle) => {
+              this.streaming.push({ id: i, plugin: pluginHandle })
+              let body = { 'request': 'watch', id: parseInt('1') }
+              pluginHandle.send({ 'message': body })
             },
-            error: function (error) { console.log(error) },
-            onmessage: function (msg, jsep) {
+            error: (error) => {
+              console.log(error)
+            },
+            onmessage: (msg, jsep) => {
               Janus.log('message', msg)
-              console.log('jsep', jsep)
               if (jsep !== undefined && jsep !== null) {
                 // Offer from the plugin, let's answer
-                console.log('index in on message', i)
-                console.log('array of streams', vm.streaming)
-                const foundStream = vm.streaming.find(s => s.id === i)
-                console.log('foundStream', foundStream)
+                const foundStream = this.streaming.find(s => s.id === i)
                 if (jsep.type === 'offer') {
                   foundStream.plugin.createAnswer(
                     {
                       jsep,
                       media: { audioSend: false, videoSend: false },
-                      success: function (jsep) {
+                      success: (jsep) => {
                         const body = { 'request': 'start' }
-                        console.log('start', jsep)
-                        console.log('index in on message success', i)
-
                         foundStream.plugin.send({ 'message': body, 'jsep': jsep })
                       },
-                      error: function (error) {
+                      error: (error) => {
                         Janus.error('WebRTC error:', error)
                       }
                     }
@@ -85,16 +73,10 @@ export default {
                 } else {
                   foundStream.plugin.handleRemoteJsep({ jsep: jsep })
                 }
-              } else {
-                let body = { 'request': 'watch', id: parseInt('1') }
-                console.log('index when we are retrying', i)
-                vm.streaming[i].plugin.send({ 'message': body })
               }
             },
-            onremotestream: function (stream) {
-              console.log('on remote stream being called')
+            onremotestream: (stream) => {
               const element = document.getElementById(`janusVideo${i}`)
-              console.log('this is the element', element)
               Janus.attachMediaStream(element, stream)
             }
           })
